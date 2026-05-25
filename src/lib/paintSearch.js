@@ -1,5 +1,6 @@
 export const ALL_BRANDS = "all";
 export const MAX_RESULTS = 80;
+export const DEFAULT_HIDDEN_TAGS = ["1", "struckThroughPaintName"];
 
 export function getNoteTitle(citations, tag) {
   const citation = citations[tag];
@@ -12,6 +13,21 @@ export function getNoteLabel(citations, tag) {
 
 export function getPaintTags(paint) {
   return [...paint.citationTags, ...(paint.excludedNames.length ? ["struckThroughPaintName"] : [])];
+}
+
+export function getAvailableTags(data) {
+  const usedTags = new Set();
+  data.paints.forEach((paint) => {
+    getPaintTags(paint).forEach((tag) => usedTags.add(tag));
+  });
+
+  return Object.keys(data.citations)
+    .filter((tag) => usedTags.has(tag))
+    .sort((a, b) => {
+      if (a === "struckThroughPaintName") return 1;
+      if (b === "struckThroughPaintName") return -1;
+      return Number(a) - Number(b);
+    });
 }
 
 export function paintSearchText(paint, citations) {
@@ -50,24 +66,25 @@ export function scorePaint(paint, query, citations) {
   return 0;
 }
 
-export function filterPaints(data, { query = "", ownedBrand = ALL_BRANDS, resultMode = "matches", maxResults = MAX_RESULTS } = {}) {
+export function filterPaints(data, { query = "", ownedBrand = ALL_BRANDS, hiddenTags = [], maxResults = MAX_RESULTS } = {}) {
   const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) return [];
+
+  const hiddenTagSet = new Set(hiddenTags);
   let paints = data.paints.filter((paint) => paint.name);
 
   if (ownedBrand !== ALL_BRANDS) {
     paints = paints.filter((paint) => paint.brandId === ownedBrand);
   }
 
-  if (resultMode === "notes") {
-    paints = paints.filter((paint) => paint.citationTags.length || paint.excludedNames.length);
-  }
+  paints = paints.filter((paint) => !getPaintTags(paint).some((tag) => hiddenTagSet.has(tag)));
 
   return paints
     .map((paint) => ({
       paint,
-      score: resultMode === "all" && !normalizedQuery ? 1 : scorePaint(paint, normalizedQuery, data.citations),
+      score: scorePaint(paint, normalizedQuery, data.citations),
     }))
-    .filter((item) => resultMode === "all" || !normalizedQuery || item.score > 0)
+    .filter((item) => item.score > 0)
     .sort(
       (a, b) =>
         b.score - a.score ||

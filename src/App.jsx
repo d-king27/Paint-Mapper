@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ALL_BRANDS, filterPaints, getNoteLabel, getNoteTitle, getPaintTags } from "./lib/paintSearch";
+import {
+  ALL_BRANDS,
+  DEFAULT_HIDDEN_TAGS,
+  filterPaints,
+  getAvailableTags,
+  getNoteLabel,
+  getNoteTitle,
+  getPaintTags,
+} from "./lib/paintSearch";
 
 function NotePills({ citations, tags }) {
   if (!tags.length) return null;
@@ -36,7 +44,7 @@ function ResultItem({ citations, paint, selected, onSelect }) {
   );
 }
 
-function DetailPanel({ data, paint, color, paintById, visibleBrands }) {
+function DetailPanel({ data, hiddenTags, paint, color, paintById, visibleBrands }) {
   if (!paint || !color) {
     return (
       <section className="detail-panel" aria-label="Paint equivalents">
@@ -56,7 +64,10 @@ function DetailPanel({ data, paint, color, paintById, visibleBrands }) {
       const equivalent = paintId ? paintById.get(paintId) : null;
       return { brand, equivalent };
     })
-    .filter(({ equivalent }) => Boolean(equivalent));
+    .filter(({ equivalent }) => {
+      if (!equivalent) return false;
+      return !getPaintTags(equivalent).some((tag) => hiddenTags.has(tag));
+    });
 
   return (
     <section className="detail-panel" aria-label="Paint equivalents">
@@ -86,8 +97,13 @@ function DetailPanel({ data, paint, color, paintById, visibleBrands }) {
                 className={`equivalent-card${equivalent.id === paint.id ? " is-selected" : ""}`}
                 key={equivalent.id}
               >
-                <div className="equivalent-brand">{equivalent.brandName}</div>
-                <div className="equivalent-name">{equivalent.name || equivalent.excludedNames[0]}</div>
+                <div className="equivalent-card-header">
+                  <span className="equivalent-swatch" style={{ background: equivalent.hex }} aria-hidden="true" />
+                  <div>
+                    <div className="equivalent-brand">{equivalent.brandName}</div>
+                    <div className="equivalent-name">{equivalent.name || equivalent.excludedNames[0]}</div>
+                  </div>
+                </div>
                 {raw ? <div className="equivalent-raw">{raw}</div> : null}
                 <NotePills citations={data.citations} tags={getPaintTags(equivalent)} />
               </article>
@@ -102,16 +118,17 @@ function DetailPanel({ data, paint, color, paintById, visibleBrands }) {
 export default function App({ data }) {
   const [query, setQuery] = useState("");
   const [ownedBrand, setOwnedBrand] = useState(ALL_BRANDS);
-  const [resultMode, setResultMode] = useState("matches");
+  const [hiddenTags, setHiddenTags] = useState(() => new Set(DEFAULT_HIDDEN_TAGS));
   const [selectedPaintId, setSelectedPaintId] = useState(null);
   const [visibleBrands, setVisibleBrands] = useState(() => new Set(data.brands.map((brand) => brand.id)));
 
   const paintById = useMemo(() => new Map(data.paints.map((paint) => [paint.id, paint])), [data]);
   const colorById = useMemo(() => new Map(data.colors.map((color) => [color.id, color])), [data]);
+  const availableTags = useMemo(() => getAvailableTags(data), [data]);
 
   const filteredPaints = useMemo(() => {
-    return filterPaints(data, { query, ownedBrand, resultMode });
-  }, [data, ownedBrand, query, resultMode]);
+    return filterPaints(data, { query, ownedBrand, hiddenTags: [...hiddenTags] });
+  }, [data, hiddenTags, ownedBrand, query]);
 
   useEffect(() => {
     if (!filteredPaints.length) {
@@ -138,6 +155,20 @@ export default function App({ data }) {
       return next;
     });
   }
+
+  function toggleHiddenTag(tag) {
+    setHiddenTags((current) => {
+      const next = new Set(current);
+      if (next.has(tag)) {
+        next.delete(tag);
+      } else {
+        next.add(tag);
+      }
+      return next;
+    });
+  }
+
+  const hasSearched = Boolean(query.trim());
 
   return (
     <div className="app-shell">
@@ -196,14 +227,23 @@ export default function App({ data }) {
                 ))}
               </select>
             </label>
-            <label htmlFor="resultMode">
-              Result type
-              <select id="resultMode" value={resultMode} onChange={(event) => setResultMode(event.target.value)}>
-                <option value="matches">Text matches</option>
-                <option value="all">All paints</option>
-                <option value="notes">With notes</option>
-              </select>
-            </label>
+            <div className="tag-filter-group" aria-label="Tag filters">
+              <span className="control-label">Hide tagged paints</span>
+              <div className="tag-filter-list">
+                {availableTags.map((tag) => (
+                  <button
+                    className="tag-filter"
+                    type="button"
+                    aria-pressed={hiddenTags.has(tag)}
+                    title={`Toggle ${getNoteTitle(data.citations, tag)}`}
+                    onClick={() => toggleHiddenTag(tag)}
+                    key={tag}
+                  >
+                    {getNoteLabel(data.citations, tag)}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="brand-strip" aria-label="Visible equivalent brands">
@@ -225,11 +265,13 @@ export default function App({ data }) {
             <span id="resultCount">
               {filteredPaints.length} {filteredPaints.length === 1 ? "paint" : "paints"}
             </span>
-            <span>{query.trim() ? "Showing best matches" : "Showing starter list"}</span>
+            <span>{hasSearched ? "Showing best matches" : "Search to begin"}</span>
           </div>
 
           <div className="results" role="list">
-            {filteredPaints.length ? (
+            {!hasSearched ? (
+              <div className="empty-results">Search for a paint to begin.</div>
+            ) : filteredPaints.length ? (
               filteredPaints.map((paint) => (
                 <ResultItem
                   paint={paint}
@@ -245,7 +287,14 @@ export default function App({ data }) {
           </div>
         </section>
 
-        <DetailPanel data={data} paint={selectedPaint} color={selectedColor} paintById={paintById} visibleBrands={visibleBrands} />
+        <DetailPanel
+          data={data}
+          hiddenTags={hiddenTags}
+          paint={selectedPaint}
+          color={selectedColor}
+          paintById={paintById}
+          visibleBrands={visibleBrands}
+        />
       </main>
     </div>
   );

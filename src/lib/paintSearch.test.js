@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterPaints, getPaintTags, scorePaint } from "./paintSearch";
+import { filterPaints, getAvailableTags, getPaintTags, scorePaint } from "./paintSearch";
 import { paintDataFixture } from "../test/fixtures/paintData";
 
 describe("paint search helpers", () => {
@@ -27,16 +27,27 @@ describe("paint search helpers", () => {
     expect(results.map((paint) => paint.name)).toContain("Dorn Yellow");
   });
 
-  it("matches readable citation labels", () => {
+  it("matches readable citation labels when the tag is visible", () => {
     const results = filterPaints(paintDataFixture, { query: "approximate" });
 
     expect(results.map((paint) => paint.name)).toContain("Dorn Yellow");
   });
 
-  it("can filter to paints with notes", () => {
-    const results = filterPaints(paintDataFixture, { resultMode: "notes" });
+  it("returns no starter results before a search is entered", () => {
+    const results = filterPaints(paintDataFixture);
 
-    expect(results.map((paint) => paint.name)).toEqual(["Dorn Yellow", "Mechrite Red"]);
+    expect(results).toEqual([]);
+  });
+
+  it("excludes paints with hidden tags", () => {
+    const results = filterPaints(paintDataFixture, { query: "Red", hiddenTags: ["1"] });
+
+    expect(results.map((paint) => paint.name)).toContain("Mephiston Red");
+    expect(results.map((paint) => paint.name)).not.toContain("Mechrite Red");
+  });
+
+  it("returns available tags used by paint entries", () => {
+    expect(getAvailableTags(paintDataFixture)).toEqual(["1", "2", "struckThroughPaintName"]);
   });
 
   it("adds a tested non-match tag for struck-through source paints", () => {
