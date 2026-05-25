@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+server.out.log
+server.err.log
+paint-mapper-*-preview.png
