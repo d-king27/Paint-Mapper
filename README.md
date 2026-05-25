@@ -26,6 +26,18 @@ Then open the local URL Vite prints, usually:
 http://localhost:5173/
 ```
 
+Run the test suite:
+
+```powershell
+npm run test:run
+```
+
+Create a production build:
+
+```powershell
+npm run build
+```
+
 ## Project structure
 
 - `src/` contains the React UI.
@@ -38,6 +50,8 @@ To regenerate the local data file:
 ```powershell
 python tools/extract_dakkadakka_paints.py
 ```
+
+When present, the local generated data file is copied into `dist/data/` during `npm run build`.
 
 ## Current UI
 

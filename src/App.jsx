@@ -1,73 +1,21 @@
 import React, { useEffect, useMemo, useState } from "react";
-import paintData from "../data/paint-compatibility.json";
+import { ALL_BRANDS, filterPaints, getNoteLabel, getNoteTitle, getPaintTags } from "./lib/paintSearch";
 
-const MAX_RESULTS = 80;
-const ALL_BRANDS = "all";
-
-function noteTitle(tag) {
-  const citation = paintData.citations[tag];
-  return citation ? `${citation.label}: ${citation.text}` : `Note ${tag}`;
-}
-
-function noteLabel(tag) {
-  return paintData.citations[tag]?.label || `Note ${tag}`;
-}
-
-function getPaintTags(paint) {
-  return [...paint.citationTags, ...(paint.excludedNames.length ? ["struckThroughPaintName"] : [])];
-}
-
-function paintSearchText(paint) {
-  const notes = paint.citationTags.map((tag) => noteTitle(tag)).join(" ");
-  return [
-    paint.name,
-    paint.rawText,
-    paint.brandName,
-    paint.hex,
-    notes,
-    paint.excludedNames.join(" "),
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-}
-
-function scorePaint(paint, query) {
-  if (!query) return 1;
-
-  const name = paint.name.toLowerCase();
-  const brand = paint.brandName.toLowerCase();
-  const raw = paint.rawText.toLowerCase();
-  const hex = paint.hex.toLowerCase();
-
-  if (name === query) return 100;
-  if (`${brand} ${name}` === query) return 95;
-  if (name.startsWith(query)) return 80;
-  if (raw.startsWith(query)) return 75;
-  if (brand.includes(query) && name.includes(query)) return 65;
-  if (name.includes(query)) return 60;
-  if (brand.includes(query)) return 42;
-  if (hex.includes(query.replace("#", "")) || hex.includes(query)) return 38;
-  if (paintSearchText(paint).includes(query)) return 25;
-
-  return 0;
-}
-
-function NotePills({ tags }) {
+function NotePills({ citations, tags }) {
   if (!tags.length) return null;
 
   return (
     <span className="note-stack">
       {tags.map((tag) => (
-        <span className="note-pill" title={noteTitle(tag)} key={tag}>
-          {noteLabel(tag)}
+        <span className="note-pill" title={getNoteTitle(citations, tag)} key={tag}>
+          {getNoteLabel(citations, tag)}
         </span>
       ))}
     </span>
   );
 }
 
-function ResultItem({ paint, selected, onSelect }) {
+function ResultItem({ citations, paint, selected, onSelect }) {
   return (
     <button
       className="result-item"
@@ -83,12 +31,12 @@ function ResultItem({ paint, selected, onSelect }) {
           {paint.brandName} - {paint.hex}
         </span>
       </span>
-      <NotePills tags={getPaintTags(paint)} />
+      <NotePills citations={citations} tags={getPaintTags(paint)} />
     </button>
   );
 }
 
-function DetailPanel({ paint, color, paintById, visibleBrands }) {
+function DetailPanel({ data, paint, color, paintById, visibleBrands }) {
   if (!paint || !color) {
     return (
       <section className="detail-panel" aria-label="Paint equivalents">
@@ -101,7 +49,7 @@ function DetailPanel({ paint, color, paintById, visibleBrands }) {
     );
   }
 
-  const visibleEquivalents = paintData.brands
+  const visibleEquivalents = data.brands
     .filter((brand) => visibleBrands.has(brand.id))
     .map((brand) => {
       const paintId = color.equivalents[brand.id];
@@ -141,7 +89,7 @@ function DetailPanel({ paint, color, paintById, visibleBrands }) {
                 <div className="equivalent-brand">{equivalent.brandName}</div>
                 <div className="equivalent-name">{equivalent.name || equivalent.excludedNames[0]}</div>
                 {raw ? <div className="equivalent-raw">{raw}</div> : null}
-                <NotePills tags={getPaintTags(equivalent)} />
+                <NotePills citations={data.citations} tags={getPaintTags(equivalent)} />
               </article>
             );
           })}
@@ -151,43 +99,19 @@ function DetailPanel({ paint, color, paintById, visibleBrands }) {
   );
 }
 
-export default function App() {
+export default function App({ data }) {
   const [query, setQuery] = useState("");
   const [ownedBrand, setOwnedBrand] = useState(ALL_BRANDS);
   const [resultMode, setResultMode] = useState("matches");
   const [selectedPaintId, setSelectedPaintId] = useState(null);
-  const [visibleBrands, setVisibleBrands] = useState(() => new Set(paintData.brands.map((brand) => brand.id)));
+  const [visibleBrands, setVisibleBrands] = useState(() => new Set(data.brands.map((brand) => brand.id)));
 
-  const paintById = useMemo(() => new Map(paintData.paints.map((paint) => [paint.id, paint])), []);
-  const colorById = useMemo(() => new Map(paintData.colors.map((color) => [color.id, color])), []);
+  const paintById = useMemo(() => new Map(data.paints.map((paint) => [paint.id, paint])), [data]);
+  const colorById = useMemo(() => new Map(data.colors.map((color) => [color.id, color])), [data]);
 
   const filteredPaints = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    let paints = paintData.paints.filter((paint) => paint.name);
-
-    if (ownedBrand !== ALL_BRANDS) {
-      paints = paints.filter((paint) => paint.brandId === ownedBrand);
-    }
-
-    if (resultMode === "notes") {
-      paints = paints.filter((paint) => paint.citationTags.length || paint.excludedNames.length);
-    }
-
-    return paints
-      .map((paint) => ({
-        paint,
-        score: resultMode === "all" && !normalizedQuery ? 1 : scorePaint(paint, normalizedQuery),
-      }))
-      .filter((item) => resultMode === "all" || !normalizedQuery || item.score > 0)
-      .sort(
-        (a, b) =>
-          b.score - a.score ||
-          a.paint.brandName.localeCompare(b.paint.brandName) ||
-          a.paint.name.localeCompare(b.paint.name),
-      )
-      .map((item) => item.paint)
-      .slice(0, MAX_RESULTS);
-  }, [ownedBrand, query, resultMode]);
+    return filterPaints(data, { query, ownedBrand, resultMode });
+  }, [data, ownedBrand, query, resultMode]);
 
   useEffect(() => {
     if (!filteredPaints.length) {
@@ -227,7 +151,7 @@ export default function App() {
           <div>
             <h1>Paint Mapper</h1>
             <p>
-              {paintData.paints.length} paints - {paintData.colors.length} colour rows - {paintData.brands.length} brands
+              {data.paints.length} paints - {data.colors.length} colour rows - {data.brands.length} brands
             </p>
           </div>
         </div>
@@ -265,7 +189,7 @@ export default function App() {
               Owned brand
               <select id="ownedBrand" value={ownedBrand} onChange={(event) => setOwnedBrand(event.target.value)}>
                 <option value={ALL_BRANDS}>Any brand</option>
-                {paintData.brands.map((brand) => (
+                {data.brands.map((brand) => (
                   <option value={brand.id} key={brand.id}>
                     {brand.name}
                   </option>
@@ -283,7 +207,7 @@ export default function App() {
           </div>
 
           <div className="brand-strip" aria-label="Visible equivalent brands">
-            {paintData.brands.map((brand) => (
+            {data.brands.map((brand) => (
               <button
                 className="brand-toggle"
                 type="button"
@@ -309,6 +233,7 @@ export default function App() {
               filteredPaints.map((paint) => (
                 <ResultItem
                   paint={paint}
+                  citations={data.citations}
                   selected={paint.id === selectedPaintId}
                   onSelect={setSelectedPaintId}
                   key={paint.id}
@@ -320,7 +245,7 @@ export default function App() {
           </div>
         </section>
 
-        <DetailPanel paint={selectedPaint} color={selectedColor} paintById={paintById} visibleBrands={visibleBrands} />
+        <DetailPanel data={data} paint={selectedPaint} color={selectedColor} paintById={paintById} visibleBrands={visibleBrands} />
       </main>
     </div>
   );
