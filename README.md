@@ -1,31 +1,43 @@
 # Paint Mapper
 
-A small static UI for searching miniature paints and finding comparable colours across other paint brands.
+A React/Vite UI for searching miniature paints and finding comparable colours across other paint brands.
 
-The first version uses extracted data from the DakkaDakka paint range compatibility chart and runs without a build step.
+The first version uses extracted data from the DakkaDakka paint range compatibility chart.
 
 ## Run locally
 
-From this folder, start any static file server. For example:
+Requires Node.js and npm.
+
+Install dependencies:
 
 ```powershell
-python -m http.server 4173
+npm install
 ```
 
-Then open:
+Start the dev server:
+
+```powershell
+npm run dev
+```
+
+Then open the local URL Vite prints, usually:
 
 ```text
-http://127.0.0.1:4173/app/
+http://localhost:5173/
 ```
-
-If Python is not on your PATH, any local static server will work as long as it serves this repository root.
 
 ## Project structure
 
-- `app/` contains the browser UI.
-- `data/paint-compatibility.json` is the UI-ready paint dataset.
+- `src/` contains the React UI.
+- `data/paint-compatibility.json` is the generated local paint dataset and is ignored by Git for now.
 - `data/README.md` documents the extracted data shape and source.
 - `tools/extract_dakkadakka_paints.py` regenerates the dataset from the source page.
+
+To regenerate the local data file:
+
+```powershell
+python tools/extract_dakkadakka_paints.py
+```
 
 ## Current UI
 

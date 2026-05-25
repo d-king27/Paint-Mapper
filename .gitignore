@@ -1,5 +1,11 @@
 __pycache__/
 *.py[cod]
+node_modules/
+dist/
+data/paint-compatibility.json
+.tools/
+.npm-cache/
 server.out.log
 server.err.log
 paint-mapper-*-preview.png
+*-preview.png
