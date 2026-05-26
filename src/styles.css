@@ -738,23 +738,40 @@ select:focus {
 }
 
 @media (max-width: 860px) {
+  .app-shell {
+    height: auto;
+    min-height: 100vh;
+    grid-template-rows: auto auto auto;
+    overflow: visible;
+  }
+
   .topbar {
     padding: 14px 16px;
+    position: static;
   }
 
   .mapper {
     grid-template-columns: 1fr;
     padding: 12px;
+    overflow: visible;
   }
 
   .mapper-view {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(320px, 0.58fr) minmax(260px, 0.42fr);
+    grid-template-rows: auto auto;
+    align-items: start;
+    overflow: visible;
+  }
+
+  .mapper-view .detail-panel,
+  .mapper-view .search-panel {
+    height: auto;
   }
 
   .search-panel {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto auto auto;
+    overflow: visible;
   }
 
   .search-box {
@@ -762,38 +779,58 @@ select:focus {
   }
 
   .filter-grid {
+    grid-template-columns: 1fr;
     grid-row: 2;
-    padding: 0 16px 14px;
+    padding: 0 16px 12px;
   }
 
   .brand-strip {
     grid-row: 3;
+    padding: 0 16px 12px;
   }
 
   .result-meta {
     grid-row: 4;
+    align-items: flex-start;
+    padding: 10px 16px;
   }
 
   .selected-result-actions {
+    align-items: stretch;
+    flex-direction: column;
     grid-row: 5;
+    padding: 12px 16px;
+    position: static;
+  }
+
+  .selected-result-actions .paint-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+    width: 100%;
   }
 
   .detail-panel {
     min-height: 0;
+    overflow: visible;
   }
 
   .results {
     grid-template-columns: 1fr;
     grid-row: 6;
+    max-height: min(280px, 34vh);
+    overscroll-behavior: contain;
   }
 
   .detail-header {
-    grid-template-columns: 88px 1fr;
-    padding: 18px;
+    grid-template-columns: 72px 1fr;
+    gap: 12px;
+    padding: 16px;
+    position: static;
   }
 
   .large-swatch {
-    width: 88px;
+    width: 72px;
   }
 
   .selected-copy h2 {
@@ -804,14 +841,43 @@ select:focus {
 @media (max-width: 520px) {
   .topbar {
     align-items: flex-start;
+    gap: 12px;
+    padding: 14px 12px;
   }
 
   .source-link {
     padding: 7px 9px;
   }
 
-  .filter-grid {
-    grid-template-columns: 1fr;
+  .brand-lockup {
+    gap: 10px;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+  }
+
+  h1 {
+    font-size: 18px;
+  }
+
+  .topbar p {
+    font-size: 12px;
+  }
+
+  .view-tabs {
+    gap: 8px;
+    padding: 12px 12px 0;
+  }
+
+  .mapper {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .search-row {
+    grid-template-columns: 1fr 38px;
   }
 
   .result-item {
@@ -826,13 +892,36 @@ select:focus {
     justify-content: flex-start;
   }
 
-  .selected-result-actions {
-    align-items: flex-start;
-    flex-direction: column;
+  .selected-result-actions .paint-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .paint-action {
+    min-height: 36px;
   }
 
   .detail-header {
+    grid-template-columns: 64px 1fr;
+    padding: 14px;
+  }
+
+  .large-swatch {
+    width: 64px;
+  }
+
+  .hex-line {
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .equivalent-section {
+    padding: 14px;
+  }
+
+  .equivalent-card .paint-actions {
+    display: grid;
     grid-template-columns: 1fr;
+    justify-content: stretch;
   }
 
   .my-paints-header {
