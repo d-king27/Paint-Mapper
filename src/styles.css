@@ -351,6 +351,7 @@ select:focus {
 }
 
 .results {
+  align-self: stretch;
   overflow: auto;
   padding: 8px;
   display: grid;
@@ -358,7 +359,9 @@ select:focus {
   gap: 6px;
   grid-column: 1 / -1;
   grid-row: 5;
+  height: 100%;
   min-height: 0;
+  scrollbar-gutter: stable;
 }
 
 .result-item {
