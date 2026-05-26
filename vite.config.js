@@ -6,6 +6,7 @@ import { defineConfig } from "vitest/config";
 const projectRoot = fileURLToPath(new URL(".", import.meta.url));
 
 export default defineConfig({
+  base: "/Paint-Mapper/",
   plugins: [
     {
       name: "copy-local-paint-data",

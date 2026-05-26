@@ -8,6 +8,13 @@ import {
   getNoteTitle,
   getPaintTags,
 } from "./lib/paintSearch";
+import {
+  buildShoppingListText,
+  getPaintCollectionStatus,
+  loadUserPaints,
+  saveUserPaints,
+  setPaintCollectionStatus,
+} from "./lib/userPaints";
 
 function NotePills({ citations, tags }) {
   if (!tags.length) return null;
@@ -23,28 +30,51 @@ function NotePills({ citations, tags }) {
   );
 }
 
-function ResultItem({ citations, paint, selected, onSelect }) {
+function PaintActions({ onSetStatus, status }) {
   return (
-    <button
-      className="result-item"
-      type="button"
-      role="listitem"
-      aria-selected={selected}
-      onClick={() => onSelect(paint.id)}
-    >
-      <span className="swatch" style={{ background: paint.hex }} aria-hidden="true" />
-      <span className="result-text">
-        <strong>{paint.name}</strong>
-        <span>
-          {paint.brandName} - {paint.hex}
-        </span>
-      </span>
-      <NotePills citations={citations} tags={getPaintTags(paint)} />
-    </button>
+    <div className="paint-actions" aria-label="Paint collection actions">
+      <button
+        className="paint-action"
+        type="button"
+        aria-pressed={status === "owned"}
+        onClick={() => onSetStatus(status === "owned" ? "none" : "owned")}
+      >
+        {status === "owned" ? "In my paints" : status === "wishlist" ? "Move to my paints" : "Add to my paints"}
+      </button>
+      <button
+        className="paint-action"
+        type="button"
+        aria-pressed={status === "wishlist"}
+        onClick={() => onSetStatus(status === "wishlist" ? "none" : "wishlist")}
+      >
+        {status === "wishlist" ? "Wishlisted" : "Add to wishlist"}
+      </button>
+    </div>
   );
 }
 
-function DetailPanel({ data, hiddenTags, paint, color, paintById, visibleBrands }) {
+function ResultItem({ citations, onSelect, paint, selected }) {
+  return (
+    <article
+      className="result-item"
+      role="listitem"
+      aria-selected={selected}
+    >
+      <button className="result-select" type="button" onClick={() => onSelect(paint.id)}>
+        <span className="swatch" style={{ background: paint.hex }} aria-hidden="true" />
+        <span className="result-text">
+          <strong>{paint.name}</strong>
+          <span>
+            {paint.brandName} - {paint.hex}
+          </span>
+        </span>
+      </button>
+      <NotePills citations={citations} tags={getPaintTags(paint)} />
+    </article>
+  );
+}
+
+function DetailPanel({ data, hiddenTags, onSetStatus, paint, color, paintById, userPaints, visibleBrands }) {
   if (!paint || !color) {
     return (
       <section className="detail-panel" aria-label="Paint equivalents">
@@ -75,7 +105,6 @@ function DetailPanel({ data, hiddenTags, paint, color, paintById, visibleBrands 
         <div className="large-swatch" style={{ background: paint.hex }} aria-hidden="true" />
         <div className="selected-copy">
           <h2>{paint.name}</h2>
-          <p>{paint.brandName} equivalent row</p>
           <div className="hex-line">
             <span className="brand-chip">{paint.brandName}</span>
             <span className="hex-chip">{paint.hex}</span>
@@ -106,6 +135,10 @@ function DetailPanel({ data, hiddenTags, paint, color, paintById, visibleBrands 
                 </div>
                 {raw ? <div className="equivalent-raw">{raw}</div> : null}
                 <NotePills citations={data.citations} tags={getPaintTags(equivalent)} />
+                <PaintActions
+                  onSetStatus={(status) => onSetStatus(equivalent.id, status)}
+                  status={getPaintCollectionStatus(userPaints, equivalent.id)}
+                />
               </article>
             );
           })}
@@ -115,11 +148,88 @@ function DetailPanel({ data, hiddenTags, paint, color, paintById, visibleBrands 
   );
 }
 
+function PaintCollectionSection({ citations, emptyText, onSetStatus, paintIds, paintById, title, userPaints }) {
+  const paints = paintIds.map((id) => paintById.get(id)).filter(Boolean);
+
+  return (
+    <section className="collection-section" aria-label={title}>
+      <div className="section-title">
+        <h3>{title}</h3>
+        <span>{paints.length} paints</span>
+      </div>
+      {paints.length ? (
+        <div className="collection-grid">
+          {paints.map((paint) => (
+            <article className="collection-card" key={paint.id}>
+              <span className="equivalent-swatch" style={{ background: paint.hex }} aria-hidden="true" />
+              <div className="collection-copy">
+                <strong>{paint.name}</strong>
+                <span>
+                  {paint.brandName} - {paint.hex}
+                </span>
+                <NotePills citations={citations} tags={getPaintTags(paint)} />
+              </div>
+              <button className="paint-action" type="button" onClick={() => onSetStatus(paint.id, "none")}>
+                Remove
+              </button>
+              {getPaintCollectionStatus(userPaints, paint.id) === "wishlist" ? (
+                <button className="paint-action" type="button" onClick={() => onSetStatus(paint.id, "owned")}>
+                  Move to owned
+                </button>
+              ) : null}
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="empty-results">{emptyText}</div>
+      )}
+    </section>
+  );
+}
+
+function MyPaintsView({ data, exportStatus, onExport, onSetStatus, paintById, userPaints }) {
+  return (
+    <section className="my-paints-panel" aria-label="My Paints">
+      <div className="my-paints-header">
+        <div>
+          <h2>My Paints</h2>
+          <p>Track paints you own or want, stored locally in this browser.</p>
+        </div>
+        <button className="source-link" type="button" onClick={onExport}>
+          Copy shopping list
+        </button>
+      </div>
+      {exportStatus ? <div className="export-status">{exportStatus}</div> : null}
+      <PaintCollectionSection
+        citations={data.citations}
+        emptyText="No owned paints yet. Add paints from the mapper."
+        onSetStatus={onSetStatus}
+        paintById={paintById}
+        paintIds={userPaints.ownedPaintIds}
+        title="Owned Paints"
+        userPaints={userPaints}
+      />
+      <PaintCollectionSection
+        citations={data.citations}
+        emptyText="No wishlist paints yet. Add paints from the mapper."
+        onSetStatus={onSetStatus}
+        paintById={paintById}
+        paintIds={userPaints.wishlistPaintIds}
+        title="Wishlist"
+        userPaints={userPaints}
+      />
+    </section>
+  );
+}
+
 export default function App({ data }) {
+  const [activeView, setActiveView] = useState("mapper");
   const [query, setQuery] = useState("");
   const [ownedBrand, setOwnedBrand] = useState(ALL_BRANDS);
   const [hiddenTags, setHiddenTags] = useState(() => new Set(DEFAULT_HIDDEN_TAGS));
   const [selectedPaintId, setSelectedPaintId] = useState(null);
+  const [exportStatus, setExportStatus] = useState("");
+  const [userPaints, setUserPaints] = useState(() => loadUserPaints());
   const [visibleBrands, setVisibleBrands] = useState(() => new Set(data.brands.map((brand) => brand.id)));
 
   const paintById = useMemo(() => new Map(data.paints.map((paint) => [paint.id, paint])), [data]);
@@ -143,6 +253,7 @@ export default function App({ data }) {
 
   const selectedPaint = selectedPaintId ? paintById.get(selectedPaintId) : null;
   const selectedColor = selectedPaint ? colorById.get(selectedPaint.colorId) : null;
+  const selectedPaintStatus = selectedPaint ? getPaintCollectionStatus(userPaints, selectedPaint.id) : "none";
 
   function toggleVisibleBrand(brandId) {
     setVisibleBrands((current) => {
@@ -168,6 +279,21 @@ export default function App({ data }) {
     });
   }
 
+  function setPaintStatus(paintId, status) {
+    setUserPaints((current) => saveUserPaints(setPaintCollectionStatus(current, paintId, status)));
+  }
+
+  async function exportUserPaints() {
+    const text = buildShoppingListText(userPaints, paintById);
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setExportStatus("Shopping list copied to clipboard.");
+    } catch {
+      setExportStatus(text);
+    }
+  }
+
   const hasSearched = Boolean(query.trim());
 
   return (
@@ -180,7 +306,7 @@ export default function App({ data }) {
             <span style={{ background: "#9c8a53" }} />
           </div>
           <div>
-            <h1>Paint Mapper</h1>
+            <h1>Litanies of Colour</h1>
             <p>
               {data.paints.length} paints - {data.colors.length} colour rows - {data.brands.length} brands
             </p>
@@ -196,8 +322,19 @@ export default function App({ data }) {
         </a>
       </header>
 
-      <main className="mapper" aria-live="polite">
-        <section className="search-panel" aria-label="Paint search">
+      <nav className="view-tabs" aria-label="Main sections">
+        <button type="button" aria-pressed={activeView === "mapper"} onClick={() => setActiveView("mapper")}>
+          Mapper
+        </button>
+        <button type="button" aria-pressed={activeView === "my-paints"} onClick={() => setActiveView("my-paints")}>
+          My Paints
+        </button>
+      </nav>
+
+      <main className={`mapper ${activeView === "mapper" ? "mapper-view" : "my-paints-view"}`} aria-live="polite">
+        {activeView === "mapper" ? (
+          <>
+          <section className="search-panel" aria-label="Paint search">
           <div className="search-box">
             <label htmlFor="paintSearch">Search by paint, brand, note, or hex</label>
             <div className="search-row">
@@ -268,6 +405,22 @@ export default function App({ data }) {
             <span>{hasSearched ? "Showing best matches" : "Search to begin"}</span>
           </div>
 
+          {selectedPaint ? (
+            <div className="selected-result-actions" aria-label="Highlighted paint actions">
+              <div>
+                <span className="control-label">Highlighted paint</span>
+                <strong>{selectedPaint.name}</strong>
+                <span>
+                  {selectedPaint.brandName} - {selectedPaint.hex}
+                </span>
+              </div>
+              <PaintActions
+                onSetStatus={(status) => setPaintStatus(selectedPaint.id, status)}
+                status={selectedPaintStatus}
+              />
+            </div>
+          ) : null}
+
           <div className="results" role="list">
             {!hasSearched ? (
               <div className="empty-results">Search for a paint to begin.</div>
@@ -285,16 +438,29 @@ export default function App({ data }) {
               <div className="empty-results">No matching paints found.</div>
             )}
           </div>
-        </section>
+          </section>
 
-        <DetailPanel
-          data={data}
-          hiddenTags={hiddenTags}
-          paint={selectedPaint}
-          color={selectedColor}
-          paintById={paintById}
-          visibleBrands={visibleBrands}
-        />
+          <DetailPanel
+            data={data}
+            hiddenTags={hiddenTags}
+            onSetStatus={setPaintStatus}
+            paint={selectedPaint}
+            color={selectedColor}
+            paintById={paintById}
+            userPaints={userPaints}
+            visibleBrands={visibleBrands}
+          />
+          </>
+        ) : (
+          <MyPaintsView
+            data={data}
+            exportStatus={exportStatus}
+            onExport={exportUserPaints}
+            onSetStatus={setPaintStatus}
+            paintById={paintById}
+            userPaints={userPaints}
+          />
+        )}
       </main>
     </div>
   );

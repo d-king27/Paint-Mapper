@@ -1,6 +1,6 @@
 export const ALL_BRANDS = "all";
 export const MAX_RESULTS = 80;
-export const DEFAULT_HIDDEN_TAGS = ["1", "struckThroughPaintName"];
+export const DEFAULT_HIDDEN_TAGS = [];
 
 export function getNoteTitle(citations, tag) {
   const citation = citations[tag];

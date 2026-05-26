@@ -1,9 +1,13 @@
 import React from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { paintDataFixture } from "./test/fixtures/paintData";
+
+function getHighlightedPaintActions() {
+  return document.querySelector('[aria-label="Highlighted paint actions"]');
+}
 
 describe("App", () => {
   it("searches paints and shows listed equivalents without empty brand cards", async () => {
@@ -14,10 +18,11 @@ describe("App", () => {
 
     expect(await screen.findByRole("heading", { name: "Mephiston Red" })).toBeInTheDocument();
     expect(screen.getByText("1 paint")).toBeInTheDocument();
-    expect(screen.getByText("2 listed matches")).toBeInTheDocument();
+    expect(screen.getByText("3 listed matches")).toBeInTheDocument();
     expect(screen.getByText("Heavy Red (141)")).toBeInTheDocument();
-    expect(document.querySelectorAll(".equivalent-swatch")).toHaveLength(2);
-    expect(screen.queryByText("Mechrite Red")).not.toBeInTheDocument();
+    expect(screen.getByText("Mechrite Red")).toBeInTheDocument();
+    expect(screen.queryByText("New Citadel equivalent row")).not.toBeInTheDocument();
+    expect(document.querySelectorAll(".equivalent-swatch")).toHaveLength(3);
     expect(screen.queryByText("No listed match")).not.toBeInTheDocument();
   });
 
@@ -39,17 +44,53 @@ describe("App", () => {
     expect(within(results).getByText("approximate")).toBeInTheDocument();
   });
 
-  it("hides and reveals results by tag filter", async () => {
+  it("shows tagged paints by default and hides them when a tag filter is toggled", async () => {
     const user = userEvent.setup();
     render(<App data={paintDataFixture} />);
 
     await user.type(screen.getByLabelText("Search by paint, brand, note, or hex"), "Mechrite Red");
 
-    expect(screen.queryByText("Mechrite Red")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Mechrite Red").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("discontinued").length).toBeGreaterThan(0);
 
     await user.click(screen.getByRole("button", { name: "discontinued" }));
 
-    expect(screen.getAllByText("Mechrite Red").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("discontinued").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Mechrite Red")).not.toBeInTheDocument();
+  });
+
+  it("adds paints to owned and wishlist lists", async () => {
+    const user = userEvent.setup();
+    render(<App data={paintDataFixture} />);
+
+    await user.type(screen.getByLabelText("Search by paint, brand, note, or hex"), "Mephiston Red");
+    await user.click(within(getHighlightedPaintActions()).getByRole("button", { name: "Add to my paints" }));
+    await user.clear(screen.getByLabelText("Search by paint, brand, note, or hex"));
+    await user.type(screen.getByLabelText("Search by paint, brand, note, or hex"), "Heavy Red");
+    await user.click(within(getHighlightedPaintActions()).getByRole("button", { name: "Add to wishlist" }));
+    await user.click(screen.getByRole("button", { name: "My Paints" }));
+
+    expect(screen.getByRole("heading", { name: "Owned Paints" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Wishlist" })).toBeInTheDocument();
+    expect(screen.getByText("Mephiston Red")).toBeInTheDocument();
+    expect(screen.getByText("Heavy Red (141)")).toBeInTheDocument();
+  });
+
+  it("copies my paints as a plain text shopping list", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue();
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    render(<App data={paintDataFixture} />);
+
+    await user.type(screen.getByLabelText("Search by paint, brand, note, or hex"), "Mephiston Red");
+    await user.click(within(getHighlightedPaintActions()).getByRole("button", { name: "Add to my paints" }));
+    await user.click(screen.getByRole("button", { name: "My Paints" }));
+    await user.click(screen.getByRole("button", { name: "Copy shopping list" }));
+
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Litanies of Colour Paint List"));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Mephiston Red"));
+    expect(screen.getByText(/Mephiston Red/)).toBeInTheDocument();
   });
 });

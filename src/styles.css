@@ -33,9 +33,11 @@ select {
 }
 
 .app-shell {
+  height: 100vh;
   min-height: 100vh;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
 }
 
 .topbar {
@@ -50,6 +52,32 @@ select {
   position: sticky;
   top: 0;
   z-index: 5;
+}
+
+.view-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px 18px 0;
+  align-self: start;
+}
+
+.view-tabs button {
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+  min-height: 42px;
+  padding: 9px 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.view-tabs button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .brand-lockup {
@@ -112,6 +140,18 @@ h1 {
   gap: 18px;
   padding: 18px;
   min-height: 0;
+  overflow: auto;
+}
+
+.mapper-view {
+  grid-template-columns: minmax(540px, 1.45fr) minmax(360px, 0.8fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.my-paints-view {
+  align-content: start;
 }
 
 .search-panel,
@@ -126,8 +166,9 @@ h1 {
 .search-panel {
   display: grid;
   grid-template-columns: minmax(320px, 1.2fr) minmax(360px, 1fr);
+  grid-template-rows: auto auto auto auto minmax(0, 1fr);
   align-items: start;
-  min-height: auto;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -239,6 +280,7 @@ select:focus {
   overflow-x: auto;
   padding: 0 18px 16px;
   grid-column: 1 / -1;
+  grid-row: 2;
 }
 
 .brand-toggle {
@@ -269,6 +311,38 @@ select:focus {
   color: var(--muted);
   font-size: 13px;
   grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+.selected-result-actions {
+  align-items: center;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 14px;
+  grid-column: 1 / -1;
+  grid-row: 4;
+  justify-content: space-between;
+  padding: 12px 18px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.selected-result-actions > div:first-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.selected-result-actions strong,
+.selected-result-actions span {
+  overflow-wrap: anywhere;
+}
+
+.selected-result-actions > div:first-child > span:last-child {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 #resultCount {
@@ -282,8 +356,9 @@ select:focus {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 6px;
-  max-height: 300px;
   grid-column: 1 / -1;
+  grid-row: 5;
+  min-height: 0;
 }
 
 .result-item {
@@ -291,9 +366,8 @@ select:focus {
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
-  cursor: pointer;
   display: grid;
-  grid-template-columns: 38px 1fr auto;
+  grid-template-columns: 1fr auto;
   align-items: center;
   gap: 10px;
   padding: 10px;
@@ -305,6 +379,24 @@ select:focus {
 .result-item[aria-selected="true"] {
   background: var(--quiet);
   border-color: var(--line);
+}
+
+.result-select {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.result-item .note-stack {
+  justify-content: flex-end;
 }
 
 .swatch {
@@ -360,9 +452,39 @@ select:focus {
   text-align: center;
 }
 
+.paint-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.paint-action {
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fbfcfa;
+  color: var(--muted);
+  cursor: pointer;
+  min-height: 30px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.paint-action[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 .detail-panel {
-  min-height: 460px;
+  min-height: 0;
   overflow: auto;
+}
+
+.mapper-view .detail-panel,
+.mapper-view .search-panel {
+  height: 100%;
 }
 
 .empty-state {
@@ -392,16 +514,20 @@ select:focus {
 }
 
 .detail-header {
+  background: var(--panel);
   display: grid;
-  grid-template-columns: 128px 1fr;
-  gap: 20px;
-  padding: 24px;
+  grid-template-columns: 76px 1fr;
+  gap: 14px;
+  padding: 16px;
   border-bottom: 1px solid var(--line);
   align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .large-swatch {
-  width: 128px;
+  width: 76px;
   aspect-ratio: 1;
   border-radius: 8px;
   border: 1px solid rgba(0, 0, 0, 0.2);
@@ -413,7 +539,7 @@ select:focus {
 }
 
 .selected-copy h2 {
-  font-size: 28px;
+  font-size: 22px;
   line-height: 1.15;
   overflow-wrap: anywhere;
 }
@@ -447,7 +573,7 @@ select:focus {
 }
 
 .equivalent-section {
-  padding: 20px 24px 24px;
+  padding: 16px;
 }
 
 .section-title {
@@ -469,7 +595,7 @@ select:focus {
 
 .equivalent-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: 1fr;
   gap: 10px;
 }
 
@@ -537,6 +663,80 @@ select:focus {
   text-align: center;
 }
 
+.my-paints-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+}
+
+.my-paints-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.my-paints-header h2 {
+  font-size: 24px;
+}
+
+.my-paints-header p {
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.export-status {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--quiet);
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+}
+
+.collection-section {
+  display: grid;
+  gap: 12px;
+}
+
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.collection-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfa;
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  gap: 10px;
+  padding: 12px;
+  align-items: start;
+}
+
+.collection-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.collection-copy strong,
+.collection-copy span {
+  overflow-wrap: anywhere;
+}
+
+.collection-copy span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 @media (max-width: 860px) {
   .topbar {
     padding: 14px 16px;
@@ -547,8 +747,14 @@ select:focus {
     padding: 12px;
   }
 
+  .mapper-view {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(320px, 0.58fr) minmax(260px, 0.42fr);
+  }
+
   .search-panel {
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto auto auto minmax(0, 1fr);
   }
 
   .search-box {
@@ -556,16 +762,29 @@ select:focus {
   }
 
   .filter-grid {
+    grid-row: 2;
     padding: 0 16px 14px;
   }
 
+  .brand-strip {
+    grid-row: 3;
+  }
+
+  .result-meta {
+    grid-row: 4;
+  }
+
+  .selected-result-actions {
+    grid-row: 5;
+  }
+
   .detail-panel {
-    min-height: auto;
+    min-height: 0;
   }
 
   .results {
     grid-template-columns: 1fr;
-    max-height: 440px;
+    grid-row: 6;
   }
 
   .detail-header {
@@ -596,15 +815,37 @@ select:focus {
   }
 
   .result-item {
-    grid-template-columns: 34px 1fr;
+    grid-template-columns: 1fr;
   }
 
   .result-item .note-stack {
-    grid-column: 2;
     justify-content: flex-start;
+  }
+
+  .result-item .paint-actions {
+    justify-content: flex-start;
+  }
+
+  .selected-result-actions {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .detail-header {
     grid-template-columns: 1fr;
+  }
+
+  .my-paints-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .collection-card {
+    grid-template-columns: 34px 1fr;
+  }
+
+  .collection-card .paint-action {
+    grid-column: 2;
+    justify-self: start;
   }
 }

@@ -1,4 +1,4 @@
-# Paint Mapper
+# Litanies of Colour
 
 A React/Vite UI for searching miniature paints and finding comparable colours across other paint brands.
 
@@ -59,3 +59,5 @@ When present, the local generated data file is copied into `dist/data/` during `
 - Filter by owned brand.
 - Toggle visible equivalent brands.
 - View swatches, hex values, matching paints, and readable paint tags such as `discontinued` or `approximate`.
+- Save paints as owned or wishlisted in browser local storage.
+- Export owned and wishlisted paints as JSON.

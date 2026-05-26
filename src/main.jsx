@@ -10,7 +10,7 @@ function PaintDataLoader() {
   useEffect(() => {
     let cancelled = false;
 
-    fetch("/data/paint-compatibility.json")
+    fetch(`${import.meta.env.BASE_URL}data/paint-compatibility.json`)
       .then((response) => {
         if (!response.ok) {
           throw new Error(`Could not load paint data (${response.status})`);
