@@ -18,7 +18,7 @@ describe("App", () => {
 
     expect(await screen.findByRole("heading", { name: "Mephiston Red" })).toBeInTheDocument();
     expect(screen.getByText("1 paint")).toBeInTheDocument();
-    expect(screen.getByText("3 listed matches")).toBeInTheDocument();
+    expect(screen.getAllByText("3 listed matches").length).toBeGreaterThan(0);
     expect(screen.getByText("Heavy Red (141)")).toBeInTheDocument();
     expect(screen.getByText("Mechrite Red")).toBeInTheDocument();
     expect(screen.queryByText("New Citadel equivalent row")).not.toBeInTheDocument();
@@ -92,5 +92,47 @@ describe("App", () => {
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Litanies of Colour Paint List"));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Mephiston Red"));
     expect(screen.getByText(/Mephiston Red/)).toBeInTheDocument();
+  });
+
+  it("creates a project and copies a paint recipe", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn().mockResolvedValue();
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    render(<App data={paintDataFixture} />);
+
+    await user.type(screen.getByLabelText("Search by paint, brand, note, or hex"), "Mephiston Red");
+    await user.click(within(getHighlightedPaintActions()).getByRole("button", { name: "Add to my paints" }));
+    await user.click(screen.getByRole("button", { name: "Projects" }));
+    await user.type(screen.getByLabelText("Project name"), "Test Marine");
+    await user.click(screen.getByRole("button", { name: "Create project" }));
+    await user.click(screen.getByRole("button", { name: "Add recipe step" }));
+    await user.selectOptions(screen.getByLabelText("Paint"), "paint-new-citadel-mephiston-red-991115-1");
+    await user.type(screen.getByLabelText("Note"), "Two thin coats");
+    await user.click(screen.getByRole("button", { name: "Copy recipe" }));
+
+    expect(screen.getByRole("heading", { name: "Test Marine" })).toBeInTheDocument();
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Test Marine Recipe"));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Basecoat: Mephiston Red"));
+    expect(screen.queryByLabelText("Area")).not.toBeInTheDocument();
+  });
+
+  it("directs users to My Paints before choosing project paints", async () => {
+    const user = userEvent.setup();
+    render(<App data={paintDataFixture} />);
+
+    await user.click(screen.getByRole("button", { name: "Projects" }));
+    await user.type(screen.getByLabelText("Project name"), "No Paints Project");
+    await user.click(screen.getByRole("button", { name: "Create project" }));
+    await user.click(screen.getByRole("button", { name: "Add recipe step" }));
+
+    expect(screen.getByText("Add paints to My Paints before assigning paints to recipe steps.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Paint")).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Go to My Paints" }));
+
+    expect(screen.getByRole("heading", { name: "My Paints" })).toBeInTheDocument();
   });
 });

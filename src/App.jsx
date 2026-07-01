@@ -15,6 +15,17 @@ import {
   saveUserPaints,
   setPaintCollectionStatus,
 } from "./lib/userPaints";
+import {
+  addProjectStep,
+  buildProjectRecipeText,
+  createProject,
+  deleteProject,
+  loadUserProjects,
+  PROJECT_STAGES,
+  removeProjectStep,
+  saveUserProjects,
+  updateProjectStep,
+} from "./lib/userProjects";
 
 function NotePills({ citations, tags }) {
   if (!tags.length) return null;
@@ -101,6 +112,10 @@ function DetailPanel({ data, hiddenTags, onSetStatus, paint, color, paintById, u
 
   return (
     <section className="detail-panel" aria-label="Paint equivalents">
+      <div className="detail-panel-title">
+        <h2>Equivalent Paints</h2>
+        <span>{visibleEquivalents.length} listed matches</span>
+      </div>
       <div className="detail-header">
         <div className="large-swatch" style={{ background: paint.hex }} aria-hidden="true" />
         <div className="selected-copy">
@@ -115,7 +130,7 @@ function DetailPanel({ data, hiddenTags, onSetStatus, paint, color, paintById, u
 
       <div className="equivalent-section">
         <div className="section-title">
-          <h3>Equivalent Colours</h3>
+          <h3>Matches by Brand</h3>
           <span>{visibleEquivalents.length} listed matches</span>
         </div>
         <div className="equivalent-grid">
@@ -222,6 +237,163 @@ function MyPaintsView({ data, exportStatus, onExport, onSetStatus, paintById, us
   );
 }
 
+function ProjectsView({
+  exportStatus,
+  onAddStep,
+  onCreateProject,
+  onDeleteProject,
+  onExportProject,
+  onRemoveStep,
+  onSelectProject,
+  onUpdateStep,
+  paintOptions,
+  onOpenMyPaints,
+  userProjects,
+}) {
+  const [projectName, setProjectName] = useState("");
+  const activeProject = userProjects.projects.find((project) => project.id === userProjects.activeProjectId) || null;
+
+  function submitProject(event) {
+    event.preventDefault();
+    if (!projectName.trim()) return;
+    onCreateProject(projectName);
+    setProjectName("");
+  }
+
+  return (
+    <section className="projects-panel" aria-label="Projects">
+      <div className="projects-header">
+        <div>
+          <h2>Projects</h2>
+          <p>Build simple paint recipes for minis and keep them saved in this browser.</p>
+        </div>
+        {activeProject ? (
+          <button className="source-link" type="button" onClick={() => onExportProject(activeProject)}>
+            Copy recipe
+          </button>
+        ) : null}
+      </div>
+      {exportStatus ? <div className="export-status">{exportStatus}</div> : null}
+
+      <form className="project-create" onSubmit={submitProject}>
+        <label htmlFor="projectName">
+          Project name
+          <input
+            id="projectName"
+            type="text"
+            placeholder="e.g. Blood Angels Terminator"
+            value={projectName}
+            onChange={(event) => setProjectName(event.target.value)}
+          />
+        </label>
+        <button className="paint-action" type="submit">
+          Create project
+        </button>
+      </form>
+
+      {userProjects.projects.length ? (
+        <div className="project-workspace">
+          <aside className="project-list" aria-label="Project list">
+            {userProjects.projects.map((project) => (
+              <button
+                className="project-list-item"
+                type="button"
+                aria-pressed={project.id === activeProject?.id}
+                onClick={() => onSelectProject(project.id)}
+                key={project.id}
+              >
+                <strong>{project.name}</strong>
+                <span>{project.steps.length} steps</span>
+              </button>
+            ))}
+          </aside>
+
+          {activeProject ? (
+            <div className="project-editor">
+              <div className="project-editor-header">
+                <div>
+                  <h3>{activeProject.name}</h3>
+                  <span>{activeProject.steps.length} recipe steps</span>
+                </div>
+                <div className="project-editor-actions">
+                  <button className="paint-action" type="button" onClick={() => onAddStep(activeProject.id)}>
+                    Add recipe step
+                  </button>
+                  <button className="paint-action" type="button" onClick={() => onDeleteProject(activeProject.id)}>
+                    Delete project
+                  </button>
+                </div>
+              </div>
+
+              {activeProject.steps.length ? (
+                <div className="recipe-list">
+                  {activeProject.steps.map((step, index) => (
+                    <article className="recipe-step" key={step.id}>
+                      <div className="recipe-step-number">{index + 1}</div>
+                      <label>
+                        Stage
+                        <select
+                          value={step.stage}
+                          onChange={(event) => onUpdateStep(activeProject.id, step.id, { stage: event.target.value })}
+                        >
+                          {PROJECT_STAGES.map((stage) => (
+                            <option value={stage} key={stage}>
+                              {stage}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Paint
+                        <select
+                          value={step.paintId}
+                          onChange={(event) => onUpdateStep(activeProject.id, step.id, { paintId: event.target.value })}
+                          disabled={!paintOptions.length}
+                        >
+                          <option value="">{paintOptions.length ? "Choose paint" : "Add paints in My Paints first"}</option>
+                          {paintOptions.map((paint) => (
+                            <option value={paint.id} key={paint.id}>
+                              {paint.name} - {paint.brandName}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="recipe-note">
+                        Note
+                        <input
+                          type="text"
+                          placeholder="Optional"
+                          value={step.note}
+                          onChange={(event) => onUpdateStep(activeProject.id, step.id, { note: event.target.value })}
+                        />
+                      </label>
+                      <button className="paint-action" type="button" onClick={() => onRemoveStep(activeProject.id, step.id)}>
+                        Remove
+                      </button>
+                    </article>
+                  ))}
+                  {!paintOptions.length ? (
+                    <div className="empty-results">
+                      Add paints to My Paints before assigning paints to recipe steps.
+                      <button className="paint-action" type="button" onClick={onOpenMyPaints}>
+                        Go to My Paints
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="empty-results">No recipe steps yet. Add a step to start planning this project.</div>
+              )}
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="empty-results">No projects yet. Name a project to start a recipe.</div>
+      )}
+    </section>
+  );
+}
+
 export default function App({ data }) {
   const [activeView, setActiveView] = useState("mapper");
   const [query, setQuery] = useState("");
@@ -229,12 +401,18 @@ export default function App({ data }) {
   const [hiddenTags, setHiddenTags] = useState(() => new Set(DEFAULT_HIDDEN_TAGS));
   const [selectedPaintId, setSelectedPaintId] = useState(null);
   const [exportStatus, setExportStatus] = useState("");
+  const [projectExportStatus, setProjectExportStatus] = useState("");
   const [userPaints, setUserPaints] = useState(() => loadUserPaints());
+  const [userProjects, setUserProjects] = useState(() => loadUserProjects());
   const [visibleBrands, setVisibleBrands] = useState(() => new Set(data.brands.map((brand) => brand.id)));
 
   const paintById = useMemo(() => new Map(data.paints.map((paint) => [paint.id, paint])), [data]);
   const colorById = useMemo(() => new Map(data.colors.map((color) => [color.id, color])), [data]);
   const availableTags = useMemo(() => getAvailableTags(data), [data]);
+  const ownedPaintOptions = useMemo(
+    () => userPaints.ownedPaintIds.map((paintId) => paintById.get(paintId)).filter(Boolean),
+    [paintById, userPaints.ownedPaintIds],
+  );
 
   const filteredPaints = useMemo(() => {
     return filterPaints(data, { query, ownedBrand, hiddenTags: [...hiddenTags] });
@@ -294,6 +472,45 @@ export default function App({ data }) {
     }
   }
 
+  function updateProjects(updater) {
+    setUserProjects((current) => saveUserProjects(updater(current)));
+  }
+
+  function selectProject(projectId) {
+    updateProjects((current) => ({ ...current, activeProjectId: projectId }));
+  }
+
+  function createNamedProject(name) {
+    updateProjects((current) => createProject(current, name));
+  }
+
+  function deleteSelectedProject(projectId) {
+    updateProjects((current) => deleteProject(current, projectId));
+  }
+
+  function addRecipeStep(projectId) {
+    updateProjects((current) => addProjectStep(current, projectId));
+  }
+
+  function changeRecipeStep(projectId, stepId, updates) {
+    updateProjects((current) => updateProjectStep(current, projectId, stepId, updates));
+  }
+
+  function removeRecipeStep(projectId, stepId) {
+    updateProjects((current) => removeProjectStep(current, projectId, stepId));
+  }
+
+  async function exportProjectRecipe(project) {
+    const text = buildProjectRecipeText(project, paintById);
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setProjectExportStatus("Recipe copied to clipboard.");
+    } catch {
+      setProjectExportStatus(text);
+    }
+  }
+
   const hasSearched = Boolean(query.trim());
 
   return (
@@ -312,6 +529,17 @@ export default function App({ data }) {
             </p>
           </div>
         </div>
+        <nav className="view-tabs" aria-label="Main sections">
+          <button type="button" aria-pressed={activeView === "mapper"} onClick={() => setActiveView("mapper")}>
+            Paint Search
+          </button>
+          <button type="button" aria-pressed={activeView === "my-paints"} onClick={() => setActiveView("my-paints")}>
+            My Paints
+          </button>
+          <button type="button" aria-pressed={activeView === "projects"} onClick={() => setActiveView("projects")}>
+            Projects
+          </button>
+        </nav>
         <a
           className="source-link"
           href="https://www.dakkadakka.com/wiki/en/paint_range_compatibility_chart"
@@ -321,15 +549,6 @@ export default function App({ data }) {
           Source
         </a>
       </header>
-
-      <nav className="view-tabs" aria-label="Main sections">
-        <button type="button" aria-pressed={activeView === "mapper"} onClick={() => setActiveView("mapper")}>
-          Mapper
-        </button>
-        <button type="button" aria-pressed={activeView === "my-paints"} onClick={() => setActiveView("my-paints")}>
-          My Paints
-        </button>
-      </nav>
 
       <main className={`mapper ${activeView === "mapper" ? "mapper-view" : "my-paints-view"}`} aria-live="polite">
         {activeView === "mapper" ? (
@@ -451,7 +670,7 @@ export default function App({ data }) {
             visibleBrands={visibleBrands}
           />
           </>
-        ) : (
+        ) : activeView === "my-paints" ? (
           <MyPaintsView
             data={data}
             exportStatus={exportStatus}
@@ -459,6 +678,20 @@ export default function App({ data }) {
             onSetStatus={setPaintStatus}
             paintById={paintById}
             userPaints={userPaints}
+          />
+        ) : (
+          <ProjectsView
+            exportStatus={projectExportStatus}
+            onAddStep={addRecipeStep}
+            onCreateProject={createNamedProject}
+            onDeleteProject={deleteSelectedProject}
+            onExportProject={exportProjectRecipe}
+            onRemoveStep={removeRecipeStep}
+            onSelectProject={selectProject}
+            onUpdateStep={changeRecipeStep}
+            paintOptions={ownedPaintOptions}
+            onOpenMyPaints={() => setActiveView("my-paints")}
+            userProjects={userProjects}
           />
         )}
       </main>

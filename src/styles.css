@@ -36,14 +36,14 @@ select {
   height: 100vh;
   min-height: 100vh;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
 }
 
 .topbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(360px, 620px) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
   padding: 18px 24px;
   border-bottom: 1px solid var(--line);
@@ -56,10 +56,11 @@ select {
 
 .view-tabs {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  padding: 12px 18px 0;
-  align-self: start;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0;
+  align-self: center;
+  min-width: 0;
 }
 
 .view-tabs button {
@@ -485,6 +486,30 @@ select:focus {
   overflow: auto;
 }
 
+.detail-panel-title {
+  align-items: baseline;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 14px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.detail-panel-title h2 {
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.detail-panel-title span {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
 .mapper-view .detail-panel,
 .mapper-view .search-panel {
   height: 100%;
@@ -524,9 +549,6 @@ select:focus {
   padding: 16px;
   border-bottom: 1px solid var(--line);
   align-items: center;
-  position: sticky;
-  top: 0;
-  z-index: 1;
 }
 
 .large-swatch {
@@ -676,18 +698,21 @@ select:focus {
   padding: 24px;
 }
 
-.my-paints-header {
+.my-paints-header,
+.projects-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
 
-.my-paints-header h2 {
+.my-paints-header h2,
+.projects-header h2 {
   font-size: 24px;
 }
 
-.my-paints-header p {
+.my-paints-header p,
+.projects-header p {
   color: var(--muted);
   margin-top: 6px;
 }
@@ -740,17 +765,148 @@ select:focus {
   font-size: 12px;
 }
 
+.projects-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+}
+
+.project-create {
+  align-items: end;
+  display: grid;
+  grid-template-columns: minmax(240px, 420px) auto;
+  gap: 12px;
+}
+
+.project-workspace {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.project-list {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+}
+
+.project-list-item {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  text-align: left;
+}
+
+.project-list-item[aria-pressed="true"],
+.project-list-item:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.project-list-item span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.project-editor {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  min-width: 0;
+}
+
+.project-editor-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.project-editor-header h3 {
+  font-size: 18px;
+}
+
+.project-editor-header span {
+  color: var(--muted);
+  display: block;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.project-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.recipe-list {
+  display: grid;
+  gap: 10px;
+}
+
+.recipe-step {
+  align-items: end;
+  background: #fbfcfa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: 34px minmax(120px, 150px) minmax(220px, 1.4fr) minmax(180px, 1fr) auto;
+  gap: 10px;
+  padding: 12px;
+}
+
+.recipe-step-number {
+  align-self: center;
+  background: var(--accent-soft);
+  border: 1px solid #a8d8d0;
+  border-radius: 999px;
+  color: var(--accent);
+  display: grid;
+  font-weight: 800;
+  height: 28px;
+  place-items: center;
+  width: 28px;
+}
+
+.recipe-note {
+  min-width: 0;
+}
+
+.empty-results .paint-action {
+  margin-top: 10px;
+}
+
 @media (max-width: 860px) {
   .app-shell {
     height: auto;
     min-height: 100vh;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto;
     overflow: visible;
   }
 
   .topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
     padding: 14px 16px;
     position: static;
+  }
+
+  .topbar .view-tabs {
+    grid-column: 1 / -1;
   }
 
   .mapper {
@@ -829,7 +985,6 @@ select:focus {
     grid-template-columns: 72px 1fr;
     gap: 12px;
     padding: 16px;
-    position: static;
   }
 
   .large-swatch {
@@ -838,6 +993,23 @@ select:focus {
 
   .selected-copy h2 {
     font-size: 22px;
+  }
+
+  .project-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .project-list {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .recipe-step {
+    grid-template-columns: 34px repeat(2, minmax(0, 1fr));
+  }
+
+  .recipe-note,
+  .recipe-step .paint-action {
+    grid-column: 2 / -1;
   }
 }
 
@@ -871,7 +1043,6 @@ select:focus {
 
   .view-tabs {
     gap: 8px;
-    padding: 12px 12px 0;
   }
 
   .mapper {
@@ -930,6 +1101,34 @@ select:focus {
   .my-paints-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .projects-header,
+  .project-editor-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .project-create,
+  .project-workspace,
+  .recipe-step {
+    grid-template-columns: 1fr;
+  }
+
+  .recipe-note,
+  .recipe-step .paint-action {
+    grid-column: auto;
+  }
+
+  .project-create .paint-action,
+  .project-editor-actions,
+  .project-editor-actions .paint-action,
+  .recipe-step .paint-action {
+    width: 100%;
+  }
+
+  .project-list {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
 
   .collection-card {
