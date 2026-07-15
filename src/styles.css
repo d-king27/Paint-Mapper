@@ -56,7 +56,7 @@ select {
 
 .view-tabs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   padding: 0;
   align-self: center;
@@ -145,18 +145,39 @@ h1 {
 }
 
 .mapper-view {
-  grid-template-columns: minmax(540px, 1.45fr) minmax(360px, 0.8fr);
+  grid-template-columns: minmax(240px, 300px) minmax(460px, 1fr);
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
   overflow: hidden;
 }
 
-.my-paints-view {
+.mapper-view.has-detail {
+  grid-template-columns: minmax(240px, 300px) minmax(420px, 1fr) minmax(340px, 0.8fr);
+}
+
+.mapper-view.is-paints-collapsed {
+  grid-template-columns: 64px minmax(460px, 1fr);
+}
+
+.mapper-view.has-detail.is-paints-collapsed {
+  grid-template-columns: 64px minmax(420px, 1fr) minmax(340px, 0.8fr);
+}
+
+.mapper-view.has-detail.is-detail-collapsed {
+  grid-template-columns: minmax(240px, 300px) minmax(420px, 1fr) 64px;
+}
+
+.mapper-view.has-detail.is-paints-collapsed.is-detail-collapsed {
+  grid-template-columns: 64px minmax(420px, 1fr) 64px;
+}
+
+.project-view {
   align-content: start;
 }
 
 .search-panel,
-.detail-panel {
+.detail-panel,
+.my-paints-panel {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -166,8 +187,8 @@ h1 {
 
 .search-panel {
   display: grid;
-  grid-template-columns: minmax(320px, 1.2fr) minmax(360px, 1fr);
-  grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto auto auto auto minmax(0, 1fr);
   align-items: start;
   min-height: 0;
   overflow: hidden;
@@ -237,9 +258,10 @@ select:focus {
 
 .filter-grid {
   display: grid;
-  grid-template-columns: minmax(190px, 260px) minmax(260px, 1fr);
+  grid-template-columns: minmax(190px, 240px) minmax(260px, 1fr);
   gap: 12px;
-  padding: 18px 18px 18px 0;
+  grid-row: 2;
+  padding: 0 18px 18px;
   align-items: start;
 }
 
@@ -281,7 +303,7 @@ select:focus {
   overflow-x: auto;
   padding: 0 18px 16px;
   grid-column: 1 / -1;
-  grid-row: 2;
+  grid-row: 3;
 }
 
 .brand-toggle {
@@ -312,7 +334,7 @@ select:focus {
   color: var(--muted);
   font-size: 13px;
   grid-column: 1 / -1;
-  grid-row: 3;
+  grid-row: 4;
 }
 
 .selected-result-actions {
@@ -322,7 +344,7 @@ select:focus {
   display: flex;
   gap: 14px;
   grid-column: 1 / -1;
-  grid-row: 4;
+  grid-row: 5;
   justify-content: space-between;
   padding: 12px 18px;
   position: sticky;
@@ -356,10 +378,10 @@ select:focus {
   overflow: auto;
   padding: 8px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: 1fr;
   gap: 6px;
   grid-column: 1 / -1;
-  grid-row: 5;
+  grid-row: 6;
   height: 100%;
   min-height: 0;
   scrollbar-gutter: stable;
@@ -487,7 +509,7 @@ select:focus {
 }
 
 .detail-panel-title {
-  align-items: baseline;
+  align-items: center;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
   display: flex;
@@ -510,7 +532,81 @@ select:focus {
   white-space: nowrap;
 }
 
+.accordion-heading {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.accordion-heading h2 {
+  overflow-wrap: anywhere;
+}
+
+.accordion-toggle {
+  align-items: center;
+  background: #fbfcfa;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-grid;
+  flex: 0 0 auto;
+  font-size: 18px;
+  font-weight: 800;
+  height: 32px;
+  line-height: 1;
+  place-items: center;
+  width: 32px;
+}
+
+.accordion-toggle:hover,
+.accordion-toggle:focus {
+  border-color: var(--accent);
+  color: var(--accent);
+  outline: none;
+}
+
+.accordion-content[hidden] {
+  display: none;
+}
+
+.accordion-panel.is-collapsed {
+  overflow: hidden;
+}
+
+.accordion-panel.is-collapsed .accordion-heading {
+  justify-content: center;
+  width: 100%;
+}
+
+.accordion-panel.is-collapsed .accordion-heading h2,
+.accordion-panel.is-collapsed .detail-panel-title > span {
+  display: none;
+}
+
+.accordion-panel.is-collapsed::after {
+  color: var(--muted);
+  display: grid;
+  font-size: 12px;
+  font-weight: 800;
+  justify-content: center;
+  letter-spacing: 0;
+  margin-top: 12px;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+}
+
+.my-paints-panel.is-collapsed::after {
+  content: "Paints";
+}
+
+.detail-panel.is-collapsed::after {
+  content: "Equiv";
+}
+
 .mapper-view .detail-panel,
+.mapper-view .my-paints-panel,
 .mapper-view .search-panel {
   height: 100%;
 }
@@ -689,13 +785,17 @@ select:focus {
 }
 
 .my-paints-panel {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
+  align-content: start;
   display: grid;
-  gap: 18px;
-  padding: 24px;
+  gap: 16px;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+  scrollbar-gutter: stable;
+}
+
+.my-paints-panel.is-collapsed {
+  padding: 12px 8px;
 }
 
 .my-paints-header,
@@ -708,7 +808,12 @@ select:focus {
 
 .my-paints-header h2,
 .projects-header h2 {
-  font-size: 24px;
+  font-size: 22px;
+}
+
+.my-paints-content {
+  display: grid;
+  gap: 16px;
 }
 
 .my-paints-header p,
@@ -728,13 +833,19 @@ select:focus {
 }
 
 .collection-section {
+  align-content: start;
   display: grid;
   gap: 12px;
 }
 
+.my-paints-panel .empty-results {
+  padding: 8px 0 12px;
+  text-align: left;
+}
+
 .collection-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: 1fr;
   gap: 10px;
 }
 
@@ -743,10 +854,27 @@ select:focus {
   border-radius: 8px;
   background: #fbfcfa;
   display: grid;
-  grid-template-columns: 34px 1fr auto;
-  gap: 10px;
+  gap: 8px;
   padding: 12px;
   align-items: start;
+}
+
+.collection-card[aria-selected="true"] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.collection-select {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
 }
 
 .collection-copy {
@@ -840,6 +968,33 @@ select:focus {
   font-size: 18px;
 }
 
+.project-name-button {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: -5px -7px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 5px 7px;
+  text-align: left;
+}
+
+.project-name-button:hover,
+.project-name-button:focus {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  outline: none;
+}
+
+.project-rename {
+  max-width: min(420px, 100%);
+}
+
 .project-editor-header span {
   color: var(--muted);
   display: block;
@@ -865,7 +1020,7 @@ select:focus {
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
-  grid-template-columns: 34px minmax(120px, 150px) minmax(220px, 1.4fr) minmax(180px, 1fr) auto;
+  grid-template-columns: 34px minmax(220px, 1.2fr) minmax(180px, 1fr) auto;
   gap: 10px;
   padding: 12px;
 }
@@ -915,7 +1070,12 @@ select:focus {
     overflow: visible;
   }
 
-  .mapper-view {
+  .mapper-view,
+  .mapper-view.has-detail,
+  .mapper-view.is-paints-collapsed,
+  .mapper-view.has-detail.is-paints-collapsed,
+  .mapper-view.has-detail.is-detail-collapsed,
+  .mapper-view.has-detail.is-paints-collapsed.is-detail-collapsed {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto;
     align-items: start;
@@ -923,6 +1083,7 @@ select:focus {
   }
 
   .mapper-view .detail-panel,
+  .mapper-view .my-paints-panel,
   .mapper-view .search-panel {
     height: auto;
   }
@@ -1103,6 +1264,11 @@ select:focus {
     flex-direction: column;
   }
 
+  .my-paints-panel.is-collapsed .my-paints-header {
+    align-items: center;
+    flex-direction: row;
+  }
+
   .projects-header,
   .project-editor-header {
     align-items: flex-start;
@@ -1132,11 +1298,11 @@ select:focus {
   }
 
   .collection-card {
-    grid-template-columns: 34px 1fr;
+    grid-template-columns: 1fr;
   }
 
   .collection-card .paint-action {
-    grid-column: 2;
+    grid-column: auto;
     justify-self: start;
   }
 }

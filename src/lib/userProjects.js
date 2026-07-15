@@ -99,6 +99,14 @@ export function deleteProject(userProjects, projectId) {
   });
 }
 
+export function updateProjectName(userProjects, projectId, name) {
+  return updateProject(userProjects, projectId, (project) => ({
+    ...project,
+    name,
+    updatedAt: new Date().toISOString(),
+  }));
+}
+
 export function addProjectStep(userProjects, projectId) {
   return updateProject(userProjects, projectId, (project) => ({
     ...project,
@@ -143,7 +151,8 @@ export function buildProjectRecipeText(project, paintById) {
     const paint = step.paintId ? paintById.get(step.paintId) : null;
     const paintName = paint ? `${paint.name} (${paint.brandName})` : "No paint selected";
     const note = step.note ? ` - ${step.note}` : "";
-    lines.push(`${index + 1}. ${step.stage}: ${paintName}${note}`);
+    // Restore stage output with: `${index + 1}. ${step.stage}: ${paintName}${note}`
+    lines.push(`${index + 1}. ${paintName}${note}`);
   });
 
   return lines.join("\n");

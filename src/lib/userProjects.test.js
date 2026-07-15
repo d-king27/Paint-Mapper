@@ -6,6 +6,7 @@ import {
   EMPTY_USER_PROJECTS,
   loadUserProjects,
   saveUserProjects,
+  updateProjectName,
   updateProjectStep,
   USER_PROJECTS_STORAGE_KEY,
 } from "./userProjects";
@@ -47,6 +48,13 @@ describe("user project storage", () => {
     });
   });
 
+  it("renames a project", () => {
+    const created = createProject(EMPTY_USER_PROJECTS, "Old Name");
+    const renamed = updateProjectName(created, created.activeProjectId, "New Name");
+
+    expect(renamed.projects[0].name).toBe("New Name");
+  });
+
   it("saves normalized project data with a timestamp", () => {
     const storage = createStorage();
     const saved = saveUserProjects(createProject(EMPTY_USER_PROJECTS, "Test Project"), storage);
@@ -70,7 +78,7 @@ describe("user project storage", () => {
     };
 
     expect(buildProjectRecipeText(project, paintById)).toContain(
-      "1. Basecoat: Mephiston Red (New Citadel) - Two thin coats",
+      "1. Mephiston Red (New Citadel) - Two thin coats",
     );
   });
 });

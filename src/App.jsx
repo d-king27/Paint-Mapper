@@ -21,9 +21,9 @@ import {
   createProject,
   deleteProject,
   loadUserProjects,
-  PROJECT_STAGES,
   removeProjectStep,
   saveUserProjects,
+  updateProjectName,
   updateProjectStep,
 } from "./lib/userProjects";
 
@@ -85,7 +85,18 @@ function ResultItem({ citations, onSelect, paint, selected }) {
   );
 }
 
-function DetailPanel({ data, hiddenTags, onSetStatus, paint, color, paintById, userPaints, visibleBrands }) {
+function DetailPanel({
+  collapsed,
+  data,
+  hiddenTags,
+  onSetStatus,
+  onToggleCollapse,
+  paint,
+  color,
+  paintById,
+  userPaints,
+  visibleBrands,
+}) {
   if (!paint || !color) {
     return (
       <section className="detail-panel" aria-label="Paint equivalents">
@@ -111,59 +122,84 @@ function DetailPanel({ data, hiddenTags, onSetStatus, paint, color, paintById, u
     });
 
   return (
-    <section className="detail-panel" aria-label="Paint equivalents">
+    <section className={`detail-panel accordion-panel${collapsed ? " is-collapsed" : ""}`} aria-label="Paint equivalents">
       <div className="detail-panel-title">
-        <h2>Equivalent Paints</h2>
+        <div className="accordion-heading">
+          <button
+            className="accordion-toggle"
+            type="button"
+            aria-expanded={!collapsed}
+            aria-controls="equivalentPaintsContent"
+            aria-label={collapsed ? "Expand Equivalent Paints" : "Collapse Equivalent Paints"}
+            onClick={onToggleCollapse}
+          >
+            {collapsed ? "+" : "-"}
+          </button>
+          <h2>Equivalent Paints</h2>
+        </div>
         <span>{visibleEquivalents.length} listed matches</span>
       </div>
-      <div className="detail-header">
-        <div className="large-swatch" style={{ background: paint.hex }} aria-hidden="true" />
-        <div className="selected-copy">
-          <h2>{paint.name}</h2>
-          <div className="hex-line">
-            <span className="brand-chip">{paint.brandName}</span>
-            <span className="hex-chip">{paint.hex}</span>
-            <span className="hex-chip">{color.paintIds.length} listed paints</span>
+
+      <div id="equivalentPaintsContent" className="accordion-content" hidden={collapsed}>
+        <div className="detail-header">
+          <div className="large-swatch" style={{ background: paint.hex }} aria-hidden="true" />
+          <div className="selected-copy">
+            <h2>{paint.name}</h2>
+            <div className="hex-line">
+              <span className="brand-chip">{paint.brandName}</span>
+              <span className="hex-chip">{paint.hex}</span>
+              <span className="hex-chip">{color.paintIds.length} listed paints</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="equivalent-section">
-        <div className="section-title">
-          <h3>Matches by Brand</h3>
-          <span>{visibleEquivalents.length} listed matches</span>
-        </div>
-        <div className="equivalent-grid">
-          {visibleEquivalents.map(({ equivalent }) => {
-            const raw = equivalent.rawText !== equivalent.name ? equivalent.rawText : "";
-            return (
-              <article
-                className={`equivalent-card${equivalent.id === paint.id ? " is-selected" : ""}`}
-                key={equivalent.id}
-              >
-                <div className="equivalent-card-header">
-                  <span className="equivalent-swatch" style={{ background: equivalent.hex }} aria-hidden="true" />
-                  <div>
-                    <div className="equivalent-brand">{equivalent.brandName}</div>
-                    <div className="equivalent-name">{equivalent.name || equivalent.excludedNames[0]}</div>
+        <div className="equivalent-section">
+          <div className="section-title">
+            <h3>Matches by Brand</h3>
+            <span>{visibleEquivalents.length} listed matches</span>
+          </div>
+          <div className="equivalent-grid">
+            {visibleEquivalents.map(({ equivalent }) => {
+              const raw = equivalent.rawText !== equivalent.name ? equivalent.rawText : "";
+              return (
+                <article
+                  className={`equivalent-card${equivalent.id === paint.id ? " is-selected" : ""}`}
+                  key={equivalent.id}
+                >
+                  <div className="equivalent-card-header">
+                    <span className="equivalent-swatch" style={{ background: equivalent.hex }} aria-hidden="true" />
+                    <div>
+                      <div className="equivalent-brand">{equivalent.brandName}</div>
+                      <div className="equivalent-name">{equivalent.name || equivalent.excludedNames[0]}</div>
+                    </div>
                   </div>
-                </div>
-                {raw ? <div className="equivalent-raw">{raw}</div> : null}
-                <NotePills citations={data.citations} tags={getPaintTags(equivalent)} />
-                <PaintActions
-                  onSetStatus={(status) => onSetStatus(equivalent.id, status)}
-                  status={getPaintCollectionStatus(userPaints, equivalent.id)}
-                />
-              </article>
-            );
-          })}
+                  {raw ? <div className="equivalent-raw">{raw}</div> : null}
+                  <NotePills citations={data.citations} tags={getPaintTags(equivalent)} />
+                  <PaintActions
+                    onSetStatus={(status) => onSetStatus(equivalent.id, status)}
+                    status={getPaintCollectionStatus(userPaints, equivalent.id)}
+                  />
+                </article>
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
   );
 }
 
-function PaintCollectionSection({ citations, emptyText, onSetStatus, paintIds, paintById, title, userPaints }) {
+function PaintCollectionSection({
+  citations,
+  emptyText,
+  onSelectPaint,
+  onSetStatus,
+  paintIds,
+  paintById,
+  selectedPaintId,
+  title,
+  userPaints,
+}) {
   const paints = paintIds.map((id) => paintById.get(id)).filter(Boolean);
 
   return (
@@ -175,15 +211,17 @@ function PaintCollectionSection({ citations, emptyText, onSetStatus, paintIds, p
       {paints.length ? (
         <div className="collection-grid">
           {paints.map((paint) => (
-            <article className="collection-card" key={paint.id}>
-              <span className="equivalent-swatch" style={{ background: paint.hex }} aria-hidden="true" />
-              <div className="collection-copy">
-                <strong>{paint.name}</strong>
-                <span>
-                  {paint.brandName} - {paint.hex}
+            <article className="collection-card" aria-selected={paint.id === selectedPaintId} key={paint.id}>
+              <button className="collection-select" type="button" onClick={() => onSelectPaint(paint.id)}>
+                <span className="equivalent-swatch" style={{ background: paint.hex }} aria-hidden="true" />
+                <span className="collection-copy">
+                  <strong>{paint.name}</strong>
+                  <span>
+                    {paint.brandName} - {paint.hex}
+                  </span>
+                  <NotePills citations={citations} tags={getPaintTags(paint)} />
                 </span>
-                <NotePills citations={citations} tags={getPaintTags(paint)} />
-              </div>
+              </button>
               <button className="paint-action" type="button" onClick={() => onSetStatus(paint.id, "none")}>
                 Remove
               </button>
@@ -202,38 +240,66 @@ function PaintCollectionSection({ citations, emptyText, onSetStatus, paintIds, p
   );
 }
 
-function MyPaintsView({ data, exportStatus, onExport, onSetStatus, paintById, userPaints }) {
+function MyPaintsPanel({
+  collapsed,
+  data,
+  exportStatus,
+  onExport,
+  onSelectPaint,
+  onSetStatus,
+  onToggleCollapse,
+  paintById,
+  selectedPaintId,
+  userPaints,
+}) {
   return (
-    <section className="my-paints-panel" aria-label="My Paints">
+    <aside className={`my-paints-panel accordion-panel${collapsed ? " is-collapsed" : ""}`} aria-label="My Paints and Wishlist">
       <div className="my-paints-header">
-        <div>
+        <div className="accordion-heading">
+          <button
+            className="accordion-toggle"
+            type="button"
+            aria-expanded={!collapsed}
+            aria-controls="myPaintsContent"
+            aria-label={collapsed ? "Expand My Paints" : "Collapse My Paints"}
+            onClick={onToggleCollapse}
+          >
+            {collapsed ? "+" : "-"}
+          </button>
           <h2>My Paints</h2>
-          <p>Track paints you own or want, stored locally in this browser.</p>
         </div>
-        <button className="source-link" type="button" onClick={onExport}>
-          Copy shopping list
-        </button>
+        {!collapsed ? (
+          <button className="source-link" type="button" onClick={onExport}>
+            Copy list
+          </button>
+        ) : null}
       </div>
-      {exportStatus ? <div className="export-status">{exportStatus}</div> : null}
-      <PaintCollectionSection
-        citations={data.citations}
-        emptyText="No owned paints yet. Add paints from the mapper."
-        onSetStatus={onSetStatus}
-        paintById={paintById}
-        paintIds={userPaints.ownedPaintIds}
-        title="Owned Paints"
-        userPaints={userPaints}
-      />
-      <PaintCollectionSection
-        citations={data.citations}
-        emptyText="No wishlist paints yet. Add paints from the mapper."
-        onSetStatus={onSetStatus}
-        paintById={paintById}
-        paintIds={userPaints.wishlistPaintIds}
-        title="Wishlist"
-        userPaints={userPaints}
-      />
-    </section>
+      <div id="myPaintsContent" className="accordion-content my-paints-content" hidden={collapsed}>
+        {exportStatus ? <div className="export-status">{exportStatus}</div> : null}
+        <PaintCollectionSection
+          citations={data.citations}
+          emptyText="No owned paints yet."
+          onSelectPaint={onSelectPaint}
+          onSetStatus={onSetStatus}
+          paintById={paintById}
+          paintIds={userPaints.ownedPaintIds}
+          selectedPaintId={selectedPaintId}
+          title="Owned Paints"
+          userPaints={userPaints}
+        />
+        <PaintCollectionSection
+          citations={data.citations}
+          emptyText="No wishlist paints yet."
+          onSelectPaint={onSelectPaint}
+          onSetStatus={onSetStatus}
+          paintById={paintById}
+          paintIds={userPaints.wishlistPaintIds}
+          selectedPaintId={selectedPaintId}
+          title="Wishlist"
+          userPaints={userPaints}
+        />
+      </div>
+    </aside>
   );
 }
 
@@ -244,6 +310,7 @@ function ProjectsView({
   onDeleteProject,
   onExportProject,
   onRemoveStep,
+  onRenameProject,
   onSelectProject,
   onUpdateStep,
   paintOptions,
@@ -251,6 +318,8 @@ function ProjectsView({
   userProjects,
 }) {
   const [projectName, setProjectName] = useState("");
+  const [editingProjectId, setEditingProjectId] = useState(null);
+  const [editingProjectName, setEditingProjectName] = useState("");
   const activeProject = userProjects.projects.find((project) => project.id === userProjects.activeProjectId) || null;
 
   function submitProject(event) {
@@ -258,6 +327,21 @@ function ProjectsView({
     if (!projectName.trim()) return;
     onCreateProject(projectName);
     setProjectName("");
+  }
+
+  function startRenamingProject(project) {
+    setEditingProjectId(project.id);
+    setEditingProjectName(project.name);
+  }
+
+  function submitProjectRename(event) {
+    event.preventDefault();
+    if (!activeProject) return;
+    const nextName = editingProjectName.trim();
+    if (nextName) {
+      onRenameProject(activeProject.id, nextName);
+    }
+    setEditingProjectId(null);
   }
 
   return (
@@ -312,7 +396,30 @@ function ProjectsView({
             <div className="project-editor">
               <div className="project-editor-header">
                 <div>
-                  <h3>{activeProject.name}</h3>
+                  {editingProjectId === activeProject.id ? (
+                    <form className="project-rename" onSubmit={submitProjectRename}>
+                      <label htmlFor="activeProjectName">
+                        Rename project
+                        <input
+                          id="activeProjectName"
+                          type="text"
+                          value={editingProjectName}
+                          onBlur={submitProjectRename}
+                          onChange={(event) => setEditingProjectName(event.target.value)}
+                          autoFocus
+                        />
+                      </label>
+                    </form>
+                  ) : (
+                    <button
+                      className="project-name-button"
+                      type="button"
+                      aria-label={`Rename project ${activeProject.name}`}
+                      onClick={() => startRenamingProject(activeProject)}
+                    >
+                      {activeProject.name}
+                    </button>
+                  )}
                   <span>{activeProject.steps.length} recipe steps</span>
                 </div>
                 <div className="project-editor-actions">
@@ -330,6 +437,7 @@ function ProjectsView({
                   {activeProject.steps.map((step, index) => (
                     <article className="recipe-step" key={step.id}>
                       <div className="recipe-step-number">{index + 1}</div>
+                      {/*
                       <label>
                         Stage
                         <select
@@ -343,6 +451,7 @@ function ProjectsView({
                           ))}
                         </select>
                       </label>
+                      */}
                       <label>
                         Paint
                         <select
@@ -376,7 +485,7 @@ function ProjectsView({
                     <div className="empty-results">
                       Add paints to My Paints before assigning paints to recipe steps.
                       <button className="paint-action" type="button" onClick={onOpenMyPaints}>
-                        Go to My Paints
+                        Go to Paint Search
                       </button>
                     </div>
                   ) : null}
@@ -404,7 +513,10 @@ export default function App({ data }) {
   const [projectExportStatus, setProjectExportStatus] = useState("");
   const [userPaints, setUserPaints] = useState(() => loadUserPaints());
   const [userProjects, setUserProjects] = useState(() => loadUserProjects());
+  const [isMyPaintsCollapsed, setIsMyPaintsCollapsed] = useState(false);
+  const [isEquivalentsCollapsed, setIsEquivalentsCollapsed] = useState(false);
   const [visibleBrands, setVisibleBrands] = useState(() => new Set(data.brands.map((brand) => brand.id)));
+  const hasSearched = Boolean(query.trim());
 
   const paintById = useMemo(() => new Map(data.paints.map((paint) => [paint.id, paint])), [data]);
   const colorById = useMemo(() => new Map(data.colors.map((color) => [color.id, color])), [data]);
@@ -419,15 +531,10 @@ export default function App({ data }) {
   }, [data, hiddenTags, ownedBrand, query]);
 
   useEffect(() => {
-    if (!filteredPaints.length) {
+    if (selectedPaintId && hasSearched && !filteredPaints.some((paint) => paint.id === selectedPaintId)) {
       setSelectedPaintId(null);
-      return;
     }
-
-    if (!selectedPaintId || !filteredPaints.some((paint) => paint.id === selectedPaintId)) {
-      setSelectedPaintId(filteredPaints[0].id);
-    }
-  }, [filteredPaints, selectedPaintId]);
+  }, [filteredPaints, hasSearched, selectedPaintId]);
 
   const selectedPaint = selectedPaintId ? paintById.get(selectedPaintId) : null;
   const selectedColor = selectedPaint ? colorById.get(selectedPaint.colorId) : null;
@@ -484,6 +591,10 @@ export default function App({ data }) {
     updateProjects((current) => createProject(current, name));
   }
 
+  function renameProject(projectId, name) {
+    updateProjects((current) => updateProjectName(current, projectId, name));
+  }
+
   function deleteSelectedProject(projectId) {
     updateProjects((current) => deleteProject(current, projectId));
   }
@@ -511,8 +622,6 @@ export default function App({ data }) {
     }
   }
 
-  const hasSearched = Boolean(query.trim());
-
   return (
     <div className="app-shell">
       <header className="topbar">
@@ -533,9 +642,6 @@ export default function App({ data }) {
           <button type="button" aria-pressed={activeView === "mapper"} onClick={() => setActiveView("mapper")}>
             Paint Search
           </button>
-          <button type="button" aria-pressed={activeView === "my-paints"} onClick={() => setActiveView("my-paints")}>
-            My Paints
-          </button>
           <button type="button" aria-pressed={activeView === "projects"} onClick={() => setActiveView("projects")}>
             Projects
           </button>
@@ -550,9 +656,31 @@ export default function App({ data }) {
         </a>
       </header>
 
-      <main className={`mapper ${activeView === "mapper" ? "mapper-view" : "my-paints-view"}`} aria-live="polite">
+      <main
+        className={`mapper ${
+          activeView === "mapper"
+            ? `mapper-view${selectedPaint ? " has-detail" : ""}${isMyPaintsCollapsed ? " is-paints-collapsed" : ""}${
+                selectedPaint && isEquivalentsCollapsed ? " is-detail-collapsed" : ""
+              }`
+            : "project-view"
+        }`}
+        aria-live="polite"
+      >
         {activeView === "mapper" ? (
           <>
+          <MyPaintsPanel
+            collapsed={isMyPaintsCollapsed}
+            data={data}
+            exportStatus={exportStatus}
+            onExport={exportUserPaints}
+            onSelectPaint={setSelectedPaintId}
+            onSetStatus={setPaintStatus}
+            onToggleCollapse={() => setIsMyPaintsCollapsed((current) => !current)}
+            paintById={paintById}
+            selectedPaintId={selectedPaintId}
+            userPaints={userPaints}
+          />
+
           <section className="search-panel" aria-label="Paint search">
           <div className="search-box">
             <label htmlFor="paintSearch">Search by paint, brand, note, or hex</label>
@@ -659,26 +787,21 @@ export default function App({ data }) {
           </div>
           </section>
 
-          <DetailPanel
-            data={data}
-            hiddenTags={hiddenTags}
-            onSetStatus={setPaintStatus}
-            paint={selectedPaint}
-            color={selectedColor}
-            paintById={paintById}
-            userPaints={userPaints}
-            visibleBrands={visibleBrands}
-          />
+          {selectedPaint ? (
+            <DetailPanel
+              collapsed={isEquivalentsCollapsed}
+              data={data}
+              hiddenTags={hiddenTags}
+              onSetStatus={setPaintStatus}
+              onToggleCollapse={() => setIsEquivalentsCollapsed((current) => !current)}
+              paint={selectedPaint}
+              color={selectedColor}
+              paintById={paintById}
+              userPaints={userPaints}
+              visibleBrands={visibleBrands}
+            />
+          ) : null}
           </>
-        ) : activeView === "my-paints" ? (
-          <MyPaintsView
-            data={data}
-            exportStatus={exportStatus}
-            onExport={exportUserPaints}
-            onSetStatus={setPaintStatus}
-            paintById={paintById}
-            userPaints={userPaints}
-          />
         ) : (
           <ProjectsView
             exportStatus={projectExportStatus}
@@ -687,10 +810,11 @@ export default function App({ data }) {
             onDeleteProject={deleteSelectedProject}
             onExportProject={exportProjectRecipe}
             onRemoveStep={removeRecipeStep}
+            onRenameProject={renameProject}
             onSelectProject={selectProject}
             onUpdateStep={changeRecipeStep}
             paintOptions={ownedPaintOptions}
-            onOpenMyPaints={() => setActiveView("my-paints")}
+            onOpenMyPaints={() => setActiveView("mapper")}
             userProjects={userProjects}
           />
         )}

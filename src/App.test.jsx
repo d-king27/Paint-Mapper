@@ -9,12 +9,17 @@ function getHighlightedPaintActions() {
   return document.querySelector('[aria-label="Highlighted paint actions"]');
 }
 
+async function clickPaintResult(user, name) {
+  await user.click(await screen.findByRole("button", { name: new RegExp(name) }));
+}
+
 describe("App", () => {
   it("searches paints and shows listed equivalents without empty brand cards", async () => {
     const user = userEvent.setup();
     render(<App data={paintDataFixture} />);
 
     await user.type(screen.getByLabelText("Search by paint, brand, note, or hex"), "Mephiston Red");
+    await clickPaintResult(user, "Mephiston Red");
 
     expect(await screen.findByRole("heading", { name: "Mephiston Red" })).toBeInTheDocument();
     expect(screen.getByText("1 paint")).toBeInTheDocument();
@@ -63,16 +68,17 @@ describe("App", () => {
     render(<App data={paintDataFixture} />);
 
     await user.type(screen.getByLabelText("Search by paint, brand, note, or hex"), "Mephiston Red");
+    await clickPaintResult(user, "Mephiston Red");
     await user.click(within(getHighlightedPaintActions()).getByRole("button", { name: "Add to my paints" }));
     await user.clear(screen.getByLabelText("Search by paint, brand, note, or hex"));
     await user.type(screen.getByLabelText("Search by paint, brand, note, or hex"), "Heavy Red");
+    await clickPaintResult(user, "Heavy Red");
     await user.click(within(getHighlightedPaintActions()).getByRole("button", { name: "Add to wishlist" }));
-    await user.click(screen.getByRole("button", { name: "My Paints" }));
 
     expect(screen.getByRole("heading", { name: "Owned Paints" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Wishlist" })).toBeInTheDocument();
-    expect(screen.getByText("Mephiston Red")).toBeInTheDocument();
-    expect(screen.getByText("Heavy Red (141)")).toBeInTheDocument();
+    expect(screen.getAllByText("Mephiston Red").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Heavy Red (141)").length).toBeGreaterThan(0);
   });
 
   it("copies my paints as a plain text shopping list", async () => {
@@ -85,13 +91,30 @@ describe("App", () => {
     render(<App data={paintDataFixture} />);
 
     await user.type(screen.getByLabelText("Search by paint, brand, note, or hex"), "Mephiston Red");
+    await clickPaintResult(user, "Mephiston Red");
     await user.click(within(getHighlightedPaintActions()).getByRole("button", { name: "Add to my paints" }));
-    await user.click(screen.getByRole("button", { name: "My Paints" }));
-    await user.click(screen.getByRole("button", { name: "Copy shopping list" }));
+    await user.click(screen.getByRole("button", { name: "Copy list" }));
 
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Litanies of Colour Paint List"));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Mephiston Red"));
-    expect(screen.getByText(/Mephiston Red/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Mephiston Red/).length).toBeGreaterThan(0);
+  });
+
+  it("collapses the paint collection and equivalent paint panels", async () => {
+    const user = userEvent.setup();
+    render(<App data={paintDataFixture} />);
+
+    await user.click(screen.getByRole("button", { name: "Collapse My Paints" }));
+
+    expect(screen.getByRole("button", { name: "Expand My Paints" })).toBeInTheDocument();
+    expect(screen.getByText("No owned paints yet.")).not.toBeVisible();
+
+    await user.type(screen.getByLabelText("Search by paint, brand, note, or hex"), "Mephiston Red");
+    await clickPaintResult(user, "Mephiston Red");
+    await user.click(screen.getByRole("button", { name: "Collapse Equivalent Paints" }));
+
+    expect(screen.getByRole("button", { name: "Expand Equivalent Paints" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Mephiston Red" })).not.toBeInTheDocument();
   });
 
   it("creates a project and copies a paint recipe", async () => {
@@ -104,6 +127,7 @@ describe("App", () => {
     render(<App data={paintDataFixture} />);
 
     await user.type(screen.getByLabelText("Search by paint, brand, note, or hex"), "Mephiston Red");
+    await clickPaintResult(user, "Mephiston Red");
     await user.click(within(getHighlightedPaintActions()).getByRole("button", { name: "Add to my paints" }));
     await user.click(screen.getByRole("button", { name: "Projects" }));
     await user.type(screen.getByLabelText("Project name"), "Test Marine");
@@ -113,9 +137,10 @@ describe("App", () => {
     await user.type(screen.getByLabelText("Note"), "Two thin coats");
     await user.click(screen.getByRole("button", { name: "Copy recipe" }));
 
-    expect(screen.getByRole("heading", { name: "Test Marine" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Rename project Test Marine" })).toBeInTheDocument();
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Test Marine Recipe"));
-    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("Basecoat: Mephiston Red"));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("1. Mephiston Red"));
+    expect(screen.queryByLabelText("Stage")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Area")).not.toBeInTheDocument();
   });
 
@@ -131,8 +156,23 @@ describe("App", () => {
     expect(screen.getByText("Add paints to My Paints before assigning paints to recipe steps.")).toBeInTheDocument();
     expect(screen.getByLabelText("Paint")).toBeDisabled();
 
-    await user.click(screen.getByRole("button", { name: "Go to My Paints" }));
+    await user.click(screen.getByRole("button", { name: "Go to Paint Search" }));
 
     expect(screen.getByRole("heading", { name: "My Paints" })).toBeInTheDocument();
+  });
+
+  it("renames a project by editing the active project name", async () => {
+    const user = userEvent.setup();
+    render(<App data={paintDataFixture} />);
+
+    await user.click(screen.getByRole("button", { name: "Projects" }));
+    await user.type(screen.getByLabelText("Project name"), "Old Project");
+    await user.click(screen.getByRole("button", { name: "Create project" }));
+    await user.click(screen.getByRole("button", { name: "Rename project Old Project" }));
+    await user.clear(screen.getByLabelText("Rename project"));
+    await user.type(screen.getByLabelText("Rename project"), "Renamed Project");
+    await user.keyboard("{Enter}");
+
+    expect(screen.getByRole("button", { name: "Rename project Renamed Project" })).toBeInTheDocument();
   });
 });
